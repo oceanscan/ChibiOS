@@ -46,9 +46,12 @@
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
+ * Possible optimisations:              // TODO:
+ *  1. htons() and htonl() - make more efficient byte reversals
  */
 
 // see http://lwip.wikia.com/wiki/Porting_for_an_OS for instructions
+// see lwip/sys.h for function documentation
 
 #include "hal.h"
 
@@ -60,15 +63,24 @@
 #include "arch/cc.h"
 #include "arch/sys_arch.h"
 
+
+
 void sys_init(void) {
 
 }
 
+
+
+/*
+ *          SEMAPHORE INTERFACE ROUTINES
+ */
 err_t sys_sem_new(sys_sem_t *sem, u8_t count) {
 
   *sem = chHeapAlloc(NULL, sizeof(semaphore_t));
   if (*sem == 0) {
     SYS_STATS_INC(sem.err);
+    // TODO: remove following line after debug; let LWIP manage it
+    osalDbgAssert(*sem != NULL, "Semaphore creation fail");
     return ERR_MEM;
   }
   else {
@@ -78,6 +90,8 @@ err_t sys_sem_new(sys_sem_t *sem, u8_t count) {
   }
 }
 
+
+
 void sys_sem_free(sys_sem_t *sem) {
 
   chHeapFree(*sem);
@@ -85,18 +99,27 @@ void sys_sem_free(sys_sem_t *sem) {
   SYS_STATS_DEC(sem.used);
 }
 
+
+
 void sys_sem_signal(sys_sem_t *sem) {
 
   chSemSignal(*sem);
 }
 
-/* CHIBIOS FIX: specific variant of this call to be called from within
-   a lock.*/
+
+
+/**
+ *  CHIBIOS FIX: specific variant of this call to be called from within
+ *  a lock.
+ *  Looks like only required within sockets interface
+ */
 void sys_sem_signal_S(sys_sem_t *sem) {
 
   chSemSignalI(*sem);
   chSchRescheduleS();
 }
+
+
 
 u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout) {
   systime_t tmo, start, remaining;
@@ -109,13 +132,18 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout) {
     return SYS_ARCH_TIMEOUT;
   }
   remaining = osalOsGetSystemTimeX() - start;
+  // TODO: Is clock wraparound a potential problem here?
   osalSysUnlock();
   return (u32_t)ST2MS(remaining);
 }
 
+
+
 int sys_sem_valid(sys_sem_t *sem) {
   return *sem != SYS_SEM_NULL;
 }
+
+
 
 // typically called within lwIP after freeing a semaphore
 // to make sure the pointer is not left pointing to invalid data
@@ -123,11 +151,17 @@ void sys_sem_set_invalid(sys_sem_t *sem) {
   *sem = SYS_SEM_NULL;
 }
 
+
+/*
+ *              MAILBOX INTERFACE ROUTINES
+ */
 err_t sys_mbox_new(sys_mbox_t *mbox, int size) {
   
   *mbox = chHeapAlloc(NULL, sizeof(mailbox_t) + sizeof(msg_t) * size);
   if (*mbox == 0) {
     SYS_STATS_INC(mbox.err);
+    // TODO: remove following line after debug; let LWIP manage it
+    osalDbgAssert(*mbox != NULL, "Mailbox creation fail");
     return ERR_MEM;
   }
   else {
@@ -136,6 +170,8 @@ err_t sys_mbox_new(sys_mbox_t *mbox, int size) {
     return ERR_OK;
   }
 }
+
+
 
 void sys_mbox_free(sys_mbox_t *mbox) {
   cnt_t tmpcnt;
@@ -150,16 +186,22 @@ void sys_mbox_free(sys_mbox_t *mbox) {
     // and the developer should be notified.
     SYS_STATS_INC(mbox.err);
     chMBReset(*mbox);
+    // TODO: remove following line after debug; let LWIP manage it
+    osalDbgAssert(*mbox != NULL, "Mailbox coding fail");
   }
   chHeapFree(*mbox);
   *mbox = SYS_MBOX_NULL;
   SYS_STATS_DEC(mbox.used);
 }
 
+
+
 void sys_mbox_post(sys_mbox_t *mbox, void *msg) {
 
   chMBPost(*mbox, (msg_t)msg, TIME_INFINITE);
 }
+
+
 
 err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg) {
 
@@ -169,6 +211,8 @@ err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg) {
   }
   return ERR_OK;
 }
+
+
 
 u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
   systime_t tmo, start, remaining;
@@ -180,10 +224,13 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
     osalSysUnlock();
     return SYS_ARCH_TIMEOUT;
   }
+  // TODO: Is clock wraparound a potential problem here?
   remaining = osalOsGetSystemTimeX() - start;
   osalSysUnlock();
   return (u32_t)ST2MS(remaining);
 }
+
+
 
 u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
 
@@ -192,9 +239,13 @@ u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
   return 0;
 }
 
+
+
 int sys_mbox_valid(sys_mbox_t *mbox) {
   return *mbox != SYS_MBOX_NULL;
 }
+
+
 
 // typically called within lwIP after freeing an mbox
 // to make sure the pointer is not left pointing to invalid data
@@ -202,25 +253,37 @@ void sys_mbox_set_invalid(sys_mbox_t *mbox) {
   *mbox = SYS_MBOX_NULL;
 }
 
+
+
 sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread,
                             void *arg, int stacksize, int prio) {
   thread_t *tp;
 
   tp = chThdCreateFromHeap(NULL, THD_WORKING_AREA_SIZE(stacksize),
                            name, prio, (tfunc_t)thread, arg);
+  osalDbgAssert(tp != NULL, "LWIP thread creation fail");
+
   return (sys_thread_t)tp;
 }
+
+
 
 sys_prot_t sys_arch_protect(void) {
 
   return chSysGetStatusAndLockX();
 }
 
+
+
 void sys_arch_unprotect(sys_prot_t pval) {
 
   osalSysRestoreStatusX((syssts_t)pval);
 }
 
+
+/**
+ * Return a time reference in 1ms ticks
+ */
 u32_t sys_now(void) {
 
 #if OSAL_ST_FREQUENCY == 1000

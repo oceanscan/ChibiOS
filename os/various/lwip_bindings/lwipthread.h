@@ -24,7 +24,9 @@
 #ifndef LWIPTHREAD_H
 #define LWIPTHREAD_H
 
-#include <lwip/opt.h>
+#include "lwip/opt.h"
+#include "arch/cc.h"
+
 
 /**
  * @brief   lwIP thread priority.
@@ -33,12 +35,18 @@
 #define LWIP_THREAD_PRIORITY                LOWPRIO
 #endif
 
-/**
- * @brief  lwIP thread stack size.
- */
 #if !defined(LWIP_THREAD_STACK_SIZE) || defined(__DOXYGEN__)
-#define LWIP_THREAD_STACK_SIZE              576
+#if LWIP_SNMP
+#define LWIP_THREAD_STACK_SIZE              1400                    /* SNMP uses more stack */
+#else
+#define LWIP_THREAD_STACK_SIZE              672                     /* Previous value of 576 appeared insufficient, at least with DHCP */
 #endif
+#endif
+
+#ifndef TCPIP_THREAD_NAME
+#define TCPIP_THREAD_NAME       "lwip_tcpip"
+#endif
+
 
 /**
  * @brief   Link poll interval.
@@ -138,14 +146,73 @@
 #define LWIP_IFNAME1                        's'
 #endif
 
+
+
+
+
 /**
- * @brief   Runtime TCP/IP settings.
+ *  @brief  Macros to define an IP address
+ *
+ *  @note   Within the networking subsystem, IPv4 net addresses are
+ *          stored with LS byte of net address in MS byte of unsigned int
+ */
+#if BYTE_ORDER != LITTLE_ENDIAN
+/** Set an IP address given by the four byte-parts */
+#define IP4_ADDR_VALUE(a,b,c,d) \
+        (((u32_t)((a) & 0xff) << 24) | \
+        ((u32_t)((b) & 0xff) << 16) | \
+        ((u32_t)((c) & 0xff) << 8)  | \
+        (u32_t)((d) & 0xff))
+#else
+/** Set an IP address given by the four byte-parts.
+    Little-endian version that prevents the use of htonl. */
+#define IP4_ADDR_VALUE(a,b,c,d) \
+        (((u32_t)((d) & 0xff) << 24) | \
+        ((u32_t)((c) & 0xff) << 16) | \
+        ((u32_t)((b) & 0xff) << 8)  | \
+        (u32_t)((a) & 0xff))
+#endif
+
+/**
+ *  @brief Network addressing modes
+ */
+typedef enum {
+#if LWIP_DHCP
+    NET_ADDRESS_DHCP = 1,
+#endif
+    NET_ADDRESS_STATIC = 2,
+#if LWIP_AUTOIP
+    NET_ADDRESS_AUTO = 3
+#endif
+} net_addr_mode_t;
+
+
+/**
+ * @brief Runtime TCP/IP settings.
  */
 typedef struct lwipthread_opts {
-  uint8_t       *macaddress;
-  uint32_t      address;
-  uint32_t      netmask;
-  uint32_t      gateway;
+/**
+ *  @brief Pointer to MAC address as an array of 6 unsigned bytes
+ *  @note  MUST be unique on the network, and should be within a registered range
+ */
+  const uint8_t     *macaddress;
+/**
+ *  @brief Network address, subnet mask, gateway as 32-bit unsigned integers
+ */
+  uint32_t          address;
+  uint32_t          netmask;
+  uint32_t          gateway;
+/**
+ *  @brief Startup network addressing mode - static, DHCP, auto
+ */
+  net_addr_mode_t   addrMode;
+  /**
+   *  @brief Host name - if NULL, a default string is used
+   *  @note   Not checked for validity - in particular, spaces not allowed
+   */
+  #if LWIP_NETIF_HOSTNAME
+    char              *ourHostName;
+  #endif
 } lwipthread_opts_t;
 
 #ifdef __cplusplus

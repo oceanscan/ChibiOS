@@ -53,25 +53,52 @@
 
 #include <hal.h>
 
-typedef uint8_t         u8_t;
-typedef int8_t          s8_t;
-typedef uint16_t        u16_t;
-typedef int16_t         s16_t;
-typedef uint32_t        u32_t;
-typedef int32_t         s32_t;
-typedef uint32_t        mem_ptr_t;
+/**
+ * From sockets.h:
+ * LWIP_TIMEVAL_PRIVATE: if you want to use the struct timeval provided
+ * by your system, set this to 0 and include <sys/time.h> in cc.h */
+#ifdef LWIP_TIMEVAL_PRIVATE
+#if LWIP_TIMEVAL_PRIVATE == 0
+#include <sys/time.h>
+#endif
+#endif
+
+#ifndef LITTLE_ENDIAN
+#define LITTLE_ENDIAN 1234
+#endif
+
+#ifndef BIG_ENDIAN
+#define BIG_ENDIAN 4321
+#endif
+
+#include <ch.h>
+#include <chprintf.h>
+#include "dbg.h"
 
 #define PACK_STRUCT_STRUCT __attribute__((packed))
 
-#define LWIP_PLATFORM_DIAG(x)
-#define LWIP_PLATFORM_ASSERT(x) {                                       \
-  osalSysHalt(x);                                                          \
-}
+#define U8_F "c"
+#define S8_F "c"
+#define X8_F "x"
+#define U16_F "u"
+#define S16_F "d"
+#define X16_F "x"
+#define U32_F "u"
+#define S32_F "d"
+#define X32_F "x"
+
+#define CHPRINT(...) dbg(__VA_ARGS__)
+
+#define LWIP_PLATFORM_DIAG(x)  { CHPRINT x; }
+
+#define LWIP_PLATFORM_ASSERT(x) {               \
+    osalSysHalt(x);                             \
+  }
 
 #ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 
-#define LWIP_PROVIDE_ERRNO
+//#define LWIP_PROVIDE_ERRNO
 
 #endif /* __CC_H__ */
