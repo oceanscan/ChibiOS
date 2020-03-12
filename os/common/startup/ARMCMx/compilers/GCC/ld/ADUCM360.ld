@@ -15,11 +15,12 @@
 */
 
 /*
- * ST32F103xG memory setup.
+ * ADUCM360 memory setup.
+ * Note: Use of ram1 and ram2 is mutually exclusive with use of ram0.
  */
 MEMORY
 {
-    flash0 (rx) : org = 0x08000000, len = 1M
+    flash0 (rx) : org = 0x00000000, len = 128k    /* On-chip Flash/EE */
     flash1 (rx) : org = 0x00000000, len = 0
     flash2 (rx) : org = 0x00000000, len = 0
     flash3 (rx) : org = 0x00000000, len = 0
@@ -27,15 +28,14 @@ MEMORY
     flash5 (rx) : org = 0x00000000, len = 0
     flash6 (rx) : org = 0x00000000, len = 0
     flash7 (rx) : org = 0x00000000, len = 0
-    ram0   (wx) : org = 0x20000000, len = 96k
+    ram0   (wx) : org = 0x20000000, len = 8k      /* SRAM */
     ram1   (wx) : org = 0x00000000, len = 0
     ram2   (wx) : org = 0x00000000, len = 0
     ram3   (wx) : org = 0x00000000, len = 0
     ram4   (wx) : org = 0x00000000, len = 0
     ram5   (wx) : org = 0x00000000, len = 0
     ram6   (wx) : org = 0x00000000, len = 0
-    ram7   (wx) : org = 0x00000000, len = 0
-}
+    ram7   (wx) : org = 0x00000000, len = 0}
 
 /* For each data/text section two region are defined, a virtual region
    and a load region (_LMA suffix).*/

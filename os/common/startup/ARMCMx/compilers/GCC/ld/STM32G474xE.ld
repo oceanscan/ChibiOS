@@ -15,11 +15,11 @@
 */
 
 /*
- * ST32F103xG memory setup.
+ * STM32G474xE memory setup.
  */
 MEMORY
 {
-    flash0 (rx) : org = 0x08000000, len = 1M
+    flash0 (rx) : org = 0x08000000, len = 512k
     flash1 (rx) : org = 0x00000000, len = 0
     flash2 (rx) : org = 0x00000000, len = 0
     flash3 (rx) : org = 0x00000000, len = 0
@@ -27,12 +27,12 @@ MEMORY
     flash5 (rx) : org = 0x00000000, len = 0
     flash6 (rx) : org = 0x00000000, len = 0
     flash7 (rx) : org = 0x00000000, len = 0
-    ram0   (wx) : org = 0x20000000, len = 96k
-    ram1   (wx) : org = 0x00000000, len = 0
-    ram2   (wx) : org = 0x00000000, len = 0
-    ram3   (wx) : org = 0x00000000, len = 0
-    ram4   (wx) : org = 0x00000000, len = 0
-    ram5   (wx) : org = 0x00000000, len = 0
+    ram0   (wx) : org = 0x20000000, len = 128k  /* SRAM1+SRAM2+CCM */
+    ram1   (wx) : org = 0x20000000, len = 96k   /* SRAM1+SRAM2 */
+    ram2   (wx) : org = 0x20000000, len = 80k   /* SRAM1 */
+    ram3   (wx) : org = 0x20014000, len = 16k   /* SRAM2 */
+    ram4   (wx) : org = 0x20018000, len = 32k   /* CCM */
+    ram5   (wx) : org = 0x10000000, len = 32k   /* CCM alias */
     ram6   (wx) : org = 0x00000000, len = 0
     ram7   (wx) : org = 0x00000000, len = 0
 }

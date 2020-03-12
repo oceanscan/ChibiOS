@@ -15,11 +15,11 @@
 */
 
 /*
- * ST32F103xG memory setup.
+ * STM32G071xB memory setup.
  */
 MEMORY
 {
-    flash0 (rx) : org = 0x08000000, len = 1M
+    flash0 (rx) : org = 0x08000000, len = 128k
     flash1 (rx) : org = 0x00000000, len = 0
     flash2 (rx) : org = 0x00000000, len = 0
     flash3 (rx) : org = 0x00000000, len = 0
@@ -27,7 +27,7 @@ MEMORY
     flash5 (rx) : org = 0x00000000, len = 0
     flash6 (rx) : org = 0x00000000, len = 0
     flash7 (rx) : org = 0x00000000, len = 0
-    ram0   (wx) : org = 0x20000000, len = 96k
+    ram0   (wx) : org = 0x20000000, len = 36k
     ram1   (wx) : org = 0x00000000, len = 0
     ram2   (wx) : org = 0x00000000, len = 0
     ram3   (wx) : org = 0x00000000, len = 0
